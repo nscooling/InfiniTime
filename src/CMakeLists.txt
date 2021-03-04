@@ -500,14 +500,14 @@ list(APPEND SOURCE_FILES
         displayapp/screens/Twos.cpp
         displayapp/screens/HeartRate.cpp
         main.cpp
-        drivers/St7789.cpp
-        drivers/SpiNorFlash.cpp
-        drivers/SpiMaster.cpp
-        drivers/Spi.cpp
-        drivers/Watchdog.cpp
-        drivers/DebugPins.cpp
-        drivers/InternalFlash.cpp
-        drivers/Hrs3300.cpp
+        # drivers/St7789.cpp
+        # drivers/SpiNorFlash.cpp
+        # drivers/SpiMaster.cpp
+        # drivers/Spi.cpp
+        # drivers/Watchdog.cpp
+        # drivers/DebugPins.cpp
+        # drivers/InternalFlash.cpp
+        # drivers/Hrs3300.cpp
         components/battery/BatteryController.cpp
         components/ble/BleController.cpp
         components/ble/NotificationManager.cpp
@@ -528,7 +528,7 @@ list(APPEND SOURCE_FILES
         components/ble/HeartRateService.cpp
         components/firmwarevalidator/FirmwareValidator.cpp
         components/motor/MotorController.cpp
-        drivers/Cst816s.cpp
+        # drivers/Cst816s.cpp
         FreeRTOS/port.c
         FreeRTOS/port_cmsis_systick.c
         FreeRTOS/port_cmsis.c
@@ -539,7 +539,7 @@ list(APPEND SOURCE_FILES
         displayapp/lv_pinetime_theme.c
 
         systemtask/SystemTask.cpp
-        drivers/TwiMaster.cpp
+        # drivers/TwiMaster.cpp
 
         heartratetask/HeartRateTask.cpp
         components/heartrate/Ppg.cpp
@@ -592,14 +592,14 @@ set(INCLUDE_FILES
         displayapp/Apps.h
         displayapp/screens/Notifications.h
         displayapp/screens/HeartRate.h
-        drivers/St7789.h
-        drivers/SpiNorFlash.h
-        drivers/SpiMaster.h
-        drivers/Spi.h
-        drivers/Watchdog.h
-        drivers/DebugPins.h
-        drivers/InternalFlash.h
-        drivers/Hrs3300.h
+        # drivers/St7789.h
+        # drivers/SpiNorFlash.h
+        # drivers/SpiMaster.h
+        # drivers/Spi.h
+        # drivers/Watchdog.h
+        # drivers/DebugPins.h
+        # drivers/InternalFlash.h
+        # drivers/Hrs3300.h
         components/battery/BatteryController.h
         components/ble/BleController.h
         components/ble/NotificationManager.h
@@ -616,7 +616,7 @@ set(INCLUDE_FILES
         components/ble/ServiceDiscovery.h
         components/ble/BleClient.h
         components/ble/HeartRateService.h.h
-        drivers/Cst816s.h
+        # drivers/Cst816s.h
         FreeRTOS/portmacro.h
         FreeRTOS/portmacro_cmsis.h
         libs/date/includes/date/tz.h
@@ -632,7 +632,7 @@ set(INCLUDE_FILES
         systemtask/SystemTask.h
         systemtask/SystemMonitor.h
         displayapp/screens/Symbols.h
-        drivers/TwiMaster.h
+        # drivers/TwiMaster.h
         heartratetask/HeartRateTask.h
         components/heartrate/Ppg.h
         components/heartrate/Biquad.h
@@ -731,10 +731,11 @@ include_directories(
 
 )
 
+
+
 link_directories(
         ../
 )
-
 
 set(COMMON_FLAGS -MP -MD -mthumb -mabi=aapcs -Wall -Wno-unknown-pragmas -g3 -ffunction-sections -fdata-sections -fno-strict-aliasing -fno-builtin --short-enums -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Wreturn-type -Werror=return-type)
 add_definitions(-DCONFIG_GPIO_AS_PINRESET)
@@ -793,7 +794,11 @@ set(EXECUTABLE_FILE_NAME ${EXECUTABLE_NAME}-${pinetime_VERSION_MAJOR}.${pinetime
 set(NRF5_LINKER_SCRIPT "${CMAKE_SOURCE_DIR}/gcc_nrf52.ld")
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES OUTPUT_NAME ${EXECUTABLE_FILE_NAME})
-target_link_libraries(${EXECUTABLE_NAME} nimble nrf-sdk lvgl)
+add_subdirectory(drivers)
+target_link_libraries(${EXECUTABLE_NAME} nimble nrf-sdk lvgl drivers)
+
+# target_link_libraries(${EXECUTABLE_NAME} PUBLIC drivers)
+
 target_compile_options(${EXECUTABLE_NAME} PUBLIC
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>: ${COMMON_FLAGS} -O0 -g3>
         $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>: ${COMMON_FLAGS} -O3>
