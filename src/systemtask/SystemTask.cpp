@@ -31,26 +31,19 @@ using namespace Pinetime::System;
 void IdleTimerCallback(TimerHandle_t xTimer) {
 
   NRF_LOG_INFO("IdleTimerCallback");
-  auto sysTask = static_cast<SystemTask *>(pvTimerGetTimerID(xTimer));
+  auto sysTask = static_cast<SystemTask*>(pvTimerGetTimerID(xTimer));
   sysTask->OnIdle();
 }
 
-
-SystemTask::SystemTask(Drivers::SpiMaster &spi, Drivers::St7789 &lcd,
-                       Pinetime::Drivers::SpiNorFlash& spiNorFlash,
-                       Drivers::TwiMaster& twiMaster, Drivers::Cst816S &touchPanel,
-                       Components::LittleVgl &lvgl,
-                       Controllers::Battery &batteryController, Controllers::Ble &bleController,
-                       Controllers::DateTime &dateTimeController,
-                       Pinetime::Controllers::MotorController& motorController,
-                       Pinetime::Drivers::Hrs3300& heartRateSensor) :
-                       spi{spi}, lcd{lcd}, spiNorFlash{spiNorFlash},
-                       twiMaster{twiMaster}, touchPanel{touchPanel}, lvgl{lvgl}, batteryController{batteryController},
-                       heartRateController{*this},
-                       bleController{bleController}, dateTimeController{dateTimeController},
-                       watchdog{}, watchdogView{watchdog},
-                       motorController{motorController}, heartRateSensor{heartRateSensor},
-                       nimbleController(*this, bleController,dateTimeController, notificationManager, batteryController, spiNorFlash, heartRateController) {
+SystemTask::SystemTask(Drivers::SpiMaster& spi, Drivers::St7789& lcd, Pinetime::Drivers::SpiNorFlash& spiNorFlash,
+                       Drivers::TwiMaster& twiMaster, Drivers::Cst816S& touchPanel, Components::LittleVgl& lvgl,
+                       Controllers::Battery& batteryController, Controllers::Ble& bleController, Controllers::DateTime& dateTimeController,
+                       Pinetime::Controllers::MotorController& motorController, Pinetime::Drivers::Hrs3300& heartRateSensor)
+  : spi {spi}, lcd {lcd}, spiNorFlash {spiNorFlash}, twiMaster {twiMaster}, touchPanel {touchPanel}, lvgl {lvgl},
+    batteryController {batteryController}, heartRateController {*this}, bleController {bleController},
+    dateTimeController {dateTimeController}, watchdog {}, watchdogView {watchdog}, motorController {motorController},
+    heartRateSensor {heartRateSensor},
+    nimbleController(*this, bleController, dateTimeController, notificationManager, batteryController, spiNorFlash, heartRateController) {
   systemTasksMsgQueue = xQueueCreate(10, 1);
 }
 
@@ -59,8 +52,8 @@ void SystemTask::Start() {
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 }
 
-void SystemTask::Process(void *instance) {
-  auto *app = static_cast<SystemTask *>(instance);
+void SystemTask::Process(void* instance) {
+  auto* app = static_cast<SystemTask*>(instance);
   NRF_LOG_INFO("systemtask task started!");
   app->Work();
 }
@@ -83,10 +76,9 @@ void SystemTask::Work() {
   batteryController.Init();
   motorController.Init();
 
-
-  displayApp =  std::make_unique<Pinetime::Applications::DisplayApp>(lcd, lvgl, touchPanel, batteryController, bleController,
-                                                          dateTimeController, watchdogView, *this, notificationManager,
-                                                          heartRateController);
+  displayApp =
+    std::make_unique<Pinetime::Applications::DisplayApp>(lcd, lvgl, touchPanel, batteryController, bleController, dateTimeController,
+                                                         watchdogView, *this, notificationManager, heartRateController);
   displayApp->Start();
 
   batteryController.Update();
@@ -94,11 +86,10 @@ void SystemTask::Work() {
 
   heartRateSensor.Init();
   heartRateSensor.Disable();
-  heartRateApp.reset(new Pinetime::Applications::HeartRateTask(heartRateSensor, heartRateController));
+  heartRateApp = std::make_unique<Pinetime::Applications::HeartRateTask>(heartRateSensor, heartRateController);
   heartRateApp->Start();
 
-
-  nrf_gpio_cfg_sense_input(pinButton, (nrf_gpio_pin_pull_t)GPIO_PIN_CNF_PULL_Pulldown, (nrf_gpio_pin_sense_t)GPIO_PIN_CNF_SENSE_High);
+  nrf_gpio_cfg_sense_input(pinButton, (nrf_gpio_pin_pull_t) GPIO_PIN_CNF_PULL_Pulldown, (nrf_gpio_pin_sense_t) GPIO_PIN_CNF_SENSE_High);
   nrf_gpio_cfg_output(15);
   nrf_gpio_pin_set(15);
 
@@ -106,33 +97,33 @@ void SystemTask::Work() {
   pinConfig.skip_gpio_setup = true;
   pinConfig.hi_accuracy = false;
   pinConfig.is_watcher = false;
-  pinConfig.sense = (nrf_gpiote_polarity_t)NRF_GPIOTE_POLARITY_HITOLO;
-  pinConfig.pull = (nrf_gpio_pin_pull_t)GPIO_PIN_CNF_PULL_Pulldown;
+  pinConfig.sense = (nrf_gpiote_polarity_t) NRF_GPIOTE_POLARITY_HITOLO;
+  pinConfig.pull = (nrf_gpio_pin_pull_t) GPIO_PIN_CNF_PULL_Pulldown;
 
   nrfx_gpiote_in_init(pinButton, &pinConfig, nrfx_gpiote_evt_handler);
 
-  nrf_gpio_cfg_sense_input(pinTouchIrq, (nrf_gpio_pin_pull_t)GPIO_PIN_CNF_PULL_Pullup, (nrf_gpio_pin_sense_t)GPIO_PIN_CNF_SENSE_Low);
+  nrf_gpio_cfg_sense_input(pinTouchIrq, (nrf_gpio_pin_pull_t) GPIO_PIN_CNF_PULL_Pullup, (nrf_gpio_pin_sense_t) GPIO_PIN_CNF_SENSE_Low);
 
   pinConfig.skip_gpio_setup = true;
   pinConfig.hi_accuracy = false;
   pinConfig.is_watcher = false;
-  pinConfig.sense = (nrf_gpiote_polarity_t)NRF_GPIOTE_POLARITY_HITOLO;
-  pinConfig.pull = (nrf_gpio_pin_pull_t)GPIO_PIN_CNF_PULL_Pullup;
+  pinConfig.sense = (nrf_gpiote_polarity_t) NRF_GPIOTE_POLARITY_HITOLO;
+  pinConfig.pull = (nrf_gpio_pin_pull_t) GPIO_PIN_CNF_PULL_Pullup;
 
   nrfx_gpiote_in_init(pinTouchIrq, &pinConfig, nrfx_gpiote_evt_handler);
 
-  idleTimer = xTimerCreate ("idleTimer", idleTime, pdFALSE, this, IdleTimerCallback);
+  idleTimer = xTimerCreate("idleTimer", idleTime, pdFALSE, this, IdleTimerCallback);
   xTimerStart(idleTimer, 0);
 
-  // Suppress endless loop diagnostic
-  #pragma clang diagnostic push
-  #pragma ide diagnostic ignored "EndlessLoop"
-  while(true) {
+// Suppress endless loop diagnostic
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "EndlessLoop"
+  while (true) {
     uint8_t msg;
     if (xQueueReceive(systemTasksMsgQueue, &msg, isSleeping ? 2500 : 1000)) {
       batteryController.Update();
-      Messages message = static_cast<Messages >(msg);
-      switch(message) {
+      Messages message = static_cast<Messages>(msg);
+      switch (message) {
         case Messages::GoToRunning:
           spi.Wakeup();
           twiMaster.Wakeup();
@@ -162,8 +153,10 @@ void SystemTask::Work() {
           displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::UpdateDateTime);
           break;
         case Messages::OnNewNotification:
-          if(isSleeping && !isWakingUp) GoToRunning();
-          if(notificationManager.IsVibrationEnabled()) motorController.SetDuration(35);
+          if (isSleeping && !isWakingUp)
+            GoToRunning();
+          if (notificationManager.IsVibrationEnabled())
+            motorController.SetDuration(35);
           displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::NewNotification);
           break;
         case Messages::BleConnected:
@@ -173,13 +166,14 @@ void SystemTask::Work() {
           break;
         case Messages::BleFirmwareUpdateStarted:
           doNotGoToSleep = true;
-          if(isSleeping && !isWakingUp) GoToRunning();
+          if (isSleeping && !isWakingUp)
+            GoToRunning();
           displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::BleFirmwareUpdateStarted);
           break;
         case Messages::BleFirmwareUpdateFinished:
           doNotGoToSleep = false;
           xTimerStart(idleTimer, 0);
-          if(bleController.State() == Pinetime::Controllers::Ble::FirmwareUpdateStates::Validated)
+          if (bleController.State() == Pinetime::Controllers::Ble::FirmwareUpdateStates::Validated)
             NVIC_SystemReset();
           break;
         case Messages::OnTouchEvent:
@@ -189,7 +183,7 @@ void SystemTask::Work() {
           ReloadIdleTimer();
           break;
         case Messages::OnDisplayTaskSleeping:
-          if(BootloaderVersion::IsValid()) {
+          if (BootloaderVersion::IsValid()) {
             // First versions of the bootloader do not expose their version and cannot initialize the SPI NOR FLASH
             // if it's in sleep mode. Avoid bricked device by disabling sleep mode on these versions.
             spiNorFlash.Sleep();
@@ -202,12 +196,13 @@ void SystemTask::Work() {
           isSleeping = true;
           isGoingToSleep = false;
           break;
-        default: break;
+        default:
+          break;
       }
     }
 
-    if(isBleDiscoveryTimerRunning) {
-      if(bleDiscoveryTimer == 0) {
+    if (isBleDiscoveryTimerRunning) {
+      if (bleDiscoveryTimer == 0) {
         isBleDiscoveryTimerRunning = false;
         // Services discovery is deffered from 3 seconds to avoid the conflicts between the host communicating with the
         // tharget and vice-versa. I'm not sure if this is the right way to handle this...
@@ -220,22 +215,22 @@ void SystemTask::Work() {
     monitor.Process();
     uint32_t systick_counter = nrf_rtc_counter_get(portNRF_RTC_REG);
     dateTimeController.UpdateTime(systick_counter);
-    if(!nrf_gpio_pin_read(pinButton))
+    if (!nrf_gpio_pin_read(pinButton))
       watchdog.Kick();
   }
-  // Clear diagnostic suppression
-  #pragma clang diagnostic pop
+// Clear diagnostic suppression
+#pragma clang diagnostic pop
 }
 
 void SystemTask::OnButtonPushed() {
-  if(isGoingToSleep) return;
-  if(!isSleeping) {
+  if (isGoingToSleep)
+    return;
+  if (!isSleeping) {
     NRF_LOG_INFO("[systemtask] Button pushed");
     PushMessage(Messages::OnButtonEvent);
     displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::ButtonPushed);
-  }
-  else {
-    if(!isWakingUp) {
+  } else {
+    if (!isWakingUp) {
       NRF_LOG_INFO("[systemtask] Button pushed, waking up");
       GoToRunning();
     }
@@ -248,16 +243,17 @@ void SystemTask::GoToRunning() {
 }
 
 void SystemTask::OnTouchEvent() {
-  if(isGoingToSleep) return ;
+  if (isGoingToSleep)
+    return;
   NRF_LOG_INFO("[systemtask] Touch event");
-  if(!isSleeping) {
+  if (!isSleeping) {
     PushMessage(Messages::OnTouchEvent);
     displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::TouchEvent);
   }
 }
 
 void SystemTask::PushMessage(SystemTask::Messages msg) {
-  if(msg == Messages::GoToSleep) {
+  if (msg == Messages::GoToSleep) {
     isGoingToSleep = true;
   }
   BaseType_t xHigherPriorityTaskWoken;
@@ -270,12 +266,14 @@ void SystemTask::PushMessage(SystemTask::Messages msg) {
 }
 
 void SystemTask::OnIdle() {
-  if(doNotGoToSleep) return;
+  if (doNotGoToSleep)
+    return;
   NRF_LOG_INFO("Idle timeout -> Going to sleep")
   PushMessage(Messages::GoToSleep);
 }
 
 void SystemTask::ReloadIdleTimer() const {
-  if(isSleeping || isGoingToSleep) return;
+  if (isSleeping || isGoingToSleep)
+    return;
   xTimerReset(idleTimer, 0);
 }

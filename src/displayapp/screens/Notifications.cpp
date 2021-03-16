@@ -4,38 +4,29 @@
 #include "components/ble/AlertNotificationService.h"
 #include "Symbols.h"
 
+#include <memory>
+
 using namespace Pinetime::Applications::Screens;
 extern lv_font_t jetbrains_mono_extrabold_compressed;
 extern lv_font_t jetbrains_mono_bold_20;
 
-Notifications::Notifications(DisplayApp *app,
-                             Pinetime::Controllers::NotificationManager &notificationManager,
-                             Pinetime::Controllers::AlertNotificationService& alertNotificationService,
-                             Modes mode) :
-        Screen(app), notificationManager{notificationManager}, alertNotificationService{alertNotificationService}, mode{mode} {
+Notifications::Notifications(DisplayApp* app, Pinetime::Controllers::NotificationManager& notificationManager,
+                             Pinetime::Controllers::AlertNotificationService& alertNotificationService, Modes mode)
+  : Screen(app), notificationManager {notificationManager}, alertNotificationService {alertNotificationService}, mode {mode} {
   notificationManager.ClearNewNotificationFlag();
   auto notification = notificationManager.GetLastNotification();
-  if(notification.valid) {
+  if (notification.valid) {
     currentId = notification.id;
-    currentItem.reset(new NotificationItem("\nNotification",
-                                           notification.message.data(),
-                                           notification.index,
-                                           notification.category,
-                                           notificationManager.NbNotifications(),
-                                           mode,
-                                           alertNotificationService));
+    currentItem =
+      std::make_unique<NotificationItem>("\nNotification", notification.message.data(), notification.index, notification.category,
+                                         notificationManager.NbNotifications(), mode, alertNotificationService);
     validDisplay = true;
   } else {
-    currentItem.reset(new NotificationItem("\nNotification",
-                                           "No notification to display",
-                                           0,
-                                           notification.category,
-                                           notificationManager.NbNotifications(),
-                                           Modes::Preview,
-                                           alertNotificationService));
+    currentItem = std::make_unique<NotificationItem>("\nNotification", "No notification to display", 0, notification.category,
+                                                     notificationManager.NbNotifications(), Modes::Preview, alertNotificationService);
   }
 
-  if(mode == Modes::Preview) {
+  if (mode == Modes::Preview) {
 
     timeoutLine = lv_line_create(lv_scr_act(), nullptr);
 
@@ -45,7 +36,7 @@ Notifications::Notifications(DisplayApp *app,
 
     lv_line_set_points(timeoutLine, timeoutLinePoints, 2);
     timeoutTickCountStart = xTaskGetTickCount();
-    timeoutTickCountEnd = timeoutTickCountStart + (5*1024);
+    timeoutTickCountEnd = timeoutTickCountStart + (5 * 1024);
   }
 }
 
@@ -76,46 +67,40 @@ bool Notifications::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
   switch (event) {
     case Pinetime::Applications::TouchEvents::SwipeUp: {
       Controllers::NotificationManager::Notification previousNotification;
-      if(validDisplay)
+      if (validDisplay)
         previousNotification = notificationManager.GetPrevious(currentId);
       else
         previousNotification = notificationManager.GetLastNotification();
 
-      if (!previousNotification.valid) return true;
+      if (!previousNotification.valid)
+        return true;
 
       validDisplay = true;
       currentId = previousNotification.id;
       currentItem.reset(nullptr);
       app->SetFullRefresh(DisplayApp::FullRefreshDirections::Up);
-      currentItem.reset(new NotificationItem("\nNotification",
-                                             previousNotification.message.data(),
-                                             previousNotification.index,
-                                             previousNotification.category,
-                                             notificationManager.NbNotifications(),
-                                             mode,
-                                             alertNotificationService));
+      currentItem = std::make_unique<NotificationItem>("\nNotification", previousNotification.message.data(), previousNotification.index,
+                                                       previousNotification.category, notificationManager.NbNotifications(), mode,
+                                                       alertNotificationService);
     }
       return true;
     case Pinetime::Applications::TouchEvents::SwipeDown: {
       Controllers::NotificationManager::Notification nextNotification;
-      if(validDisplay)
+      if (validDisplay)
         nextNotification = notificationManager.GetNext(currentId);
       else
         nextNotification = notificationManager.GetLastNotification();
 
-      if (!nextNotification.valid) return true;
+      if (!nextNotification.valid)
+        return true;
 
       validDisplay = true;
       currentId = nextNotification.id;
       currentItem.reset(nullptr);
       app->SetFullRefresh(DisplayApp::FullRefreshDirections::Down);
-      currentItem.reset(new NotificationItem("\nNotification",
-                                             nextNotification.message.data(),
-                                             nextNotification.index,
-                                             nextNotification.category,
-                                             notificationManager.NbNotifications(),
-                                             mode,
-                                             alertNotificationService));
+      currentItem = std::make_unique<NotificationItem>("\nNotification", nextNotification.message.data(), nextNotification.index,
+                                                       nextNotification.category, notificationManager.NbNotifications(), mode,
+                                                       alertNotificationService);
     }
       return true;
     case Pinetime::Applications::TouchEvents::LongTap: {
@@ -126,7 +111,6 @@ bool Notifications::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
       return false;
   }
 }
-
 
 bool Notifications::OnButtonPushed() {
   running = false;
@@ -144,20 +128,16 @@ namespace {
     item->OnMuteIncomingCall(event);
   }
 
-  static void RejectIncomingCallEventHandler(lv_obj_t *obj, lv_event_t event) {
-    auto* item = static_cast<Notifications::NotificationItem *>(obj->user_data);
+  static void RejectIncomingCallEventHandler(lv_obj_t* obj, lv_event_t event) {
+    auto* item = static_cast<Notifications::NotificationItem*>(obj->user_data);
     item->OnRejectIncomingCall(event);
   }
 }
 
-  Notifications::NotificationItem::NotificationItem(const char *title,
-                                                    const char *msg,
-                                                    uint8_t notifNr,
-                                                    Controllers::NotificationManager::Categories category,
-                                                    uint8_t notifNb,
-                                                    Modes mode,
-                                                    Pinetime::Controllers::AlertNotificationService& alertNotificationService)
-    : notifNr{notifNr}, notifNb{notifNb}, mode{mode}, alertNotificationService{alertNotificationService} {
+Notifications::NotificationItem::NotificationItem(const char* title, const char* msg, uint8_t notifNr,
+                                                  Controllers::NotificationManager::Categories category, uint8_t notifNb, Modes mode,
+                                                  Pinetime::Controllers::AlertNotificationService& alertNotificationService)
+  : notifNr {notifNr}, notifNb {notifNb}, mode {mode}, alertNotificationService {alertNotificationService} {
 
   lv_obj_t* container1 = lv_cont_create(lv_scr_act(), NULL);
 
@@ -182,15 +162,14 @@ namespace {
   lv_obj_align(alert_type, NULL, LV_ALIGN_IN_TOP_LEFT, 0, -4);
 
   /////////
-  switch(category) {
+  switch (category) {
     default: {
       lv_obj_t* alert_subject = lv_label_create(container1, nullptr);
       lv_obj_set_style_local_text_color(alert_subject, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
       lv_label_set_long_mode(alert_subject, LV_LABEL_LONG_BREAK);
       lv_obj_set_width(alert_subject, LV_HOR_RES - 20);
       lv_label_set_text(alert_subject, msg);
-    }
-    break;
+    } break;
     case Controllers::NotificationManager::Categories::IncomingCall: {
       lv_obj_t* alert_subject = lv_label_create(container1, nullptr);
       lv_obj_set_style_local_text_color(alert_subject, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
@@ -236,8 +215,7 @@ namespace {
       lv_obj_set_size(bt_mute, (LV_HOR_RES / 3) - 5, 80);
       label_mute = lv_label_create(bt_mute, nullptr);
       lv_label_set_text(label_mute, Symbols::volumMute);
-    }
-    break;
+    } break;
   }
 
   lv_obj_t* backgroundLabel = lv_label_create(lv_scr_act(), nullptr);
@@ -248,19 +226,22 @@ namespace {
 }
 
 void Notifications::NotificationItem::OnAcceptIncomingCall(lv_event_t event) {
-  if (event != LV_EVENT_CLICKED) return;
+  if (event != LV_EVENT_CLICKED)
+    return;
 
   alertNotificationService.AcceptIncomingCall();
 }
 
 void Notifications::NotificationItem::OnMuteIncomingCall(lv_event_t event) {
-  if (event != LV_EVENT_CLICKED) return;
+  if (event != LV_EVENT_CLICKED)
+    return;
 
   alertNotificationService.MuteIncomingCall();
 }
 
 void Notifications::NotificationItem::OnRejectIncomingCall(lv_event_t event) {
-  if (event != LV_EVENT_CLICKED) return;
+  if (event != LV_EVENT_CLICKED)
+    return;
 
   alertNotificationService.RejectIncomingCall();
 }
