@@ -17,40 +17,66 @@
 */
 #pragma once
 
-#include "Screen.h"
-#include "systemtask/SystemTask.h"
-#include "../LittleVgl.h"
-#include "components/alarm/AlarmController.h"
+#include "displayapp/apps/Apps.h"
+#include "components/settings/Settings.h"
+#include "displayapp/screens/Screen.h"
+#include "displayapp/widgets/Counter.h"
+#include "displayapp/Controllers.h"
+#include "Symbols.h"
 
 namespace Pinetime {
   namespace Applications {
     namespace Screens {
       class Alarm : public Screen {
       public:
-        Alarm(DisplayApp* app, Controllers::AlarmController& alarmController);
+        explicit Alarm(Controllers::AlarmController& alarmController,
+                       Controllers::Settings::ClockType clockType,
+                       System::SystemTask& systemTask,
+                       Controllers::MotorController& motorController);
         ~Alarm() override;
         void SetAlerting();
         void OnButtonEvent(lv_obj_t* obj, lv_event_t event);
         bool OnButtonPushed() override;
+        bool OnTouchEvent(TouchEvents event) override;
+        void OnValueChanged();
+        void StopAlerting();
 
       private:
-        bool running;
-        uint8_t alarmHours;
-        uint8_t alarmMinutes;
         Controllers::AlarmController& alarmController;
+        System::SystemTask& systemTask;
+        Controllers::MotorController& motorController;
 
-        lv_obj_t *time, *btnEnable, *txtEnable, *btnMinutesUp, *btnMinutesDown, *btnHoursUp, *btnHoursDown, *txtMinUp, *txtMinDown,
-          *txtHrUp, *txtHrDown, *btnRecur, *txtRecur, *btnMessage, *txtMessage, *btnInfo, *txtInfo;
+        lv_obj_t *btnStop, *txtStop, *btnRecur, *txtRecur, *btnInfo, *enableSwitch;
+        lv_obj_t* lblampm = nullptr;
+        lv_obj_t* txtMessage = nullptr;
+        lv_obj_t* btnMessage = nullptr;
+        lv_task_t* taskStopAlarm = nullptr;
 
         enum class EnableButtonState { On, Off, Alerting };
-        void SetEnableButtonState();
+        void DisableAlarm();
         void SetRecurButtonState();
+        void SetSwitchState(lv_anim_enable_t anim);
         void SetAlarm();
         void ShowInfo();
         void HideInfo();
         void ToggleRecurrence();
         void UpdateAlarmTime();
+        Widgets::Counter hourCounter = Widgets::Counter(0, 23, jetbrains_mono_76);
+        Widgets::Counter minuteCounter = Widgets::Counter(0, 59, jetbrains_mono_76);
+      };
+    }
+
+    template <>
+    struct AppTraits<Apps::Alarm> {
+      static constexpr Apps app = Apps::Alarm;
+      static constexpr const char* icon = Screens::Symbols::bell;
+
+      static Screens::Screen* Create(AppControllers& controllers) {
+        return new Screens::Alarm(controllers.alarmController,
+                                  controllers.settingsController.GetClockType(),
+                                  *controllers.systemTask,
+                                  controllers.motorController);
       };
     };
-  };
+  }
 }

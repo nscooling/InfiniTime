@@ -1,91 +1,73 @@
 #pragma once
 
-#include "Screen.h"
-#include "components/datetime/DateTimeController.h"
-#include "../LittleVgl.h"
+#include "displayapp/screens/Screen.h"
+#include <lvgl/lvgl.h>
 
-#include "FreeRTOS.h"
+#include <FreeRTOS.h>
 #include "portmacro_cmsis.h"
 
-#include <array>
 #include "systemtask/SystemTask.h"
+#include "displayapp/apps/Apps.h"
+#include "displayapp/Controllers.h"
+#include "Symbols.h"
 
-namespace Pinetime::Applications::Screens {
+namespace Pinetime {
+  namespace Applications {
+    namespace Screens {
 
-  enum class States { Init, Running, Halted };
+      enum class States { Init, Running, Halted };
 
-  struct TimeSeparated_t {
-    int mins;
-    int secs;
-    int hundredths;
-  };
+      struct TimeSeparated_t {
+        int hours;
+        int mins;
+        int secs;
+        int hundredths;
+      };
 
-  // A simple buffer to hold the latest two laps
-  template <int N> struct LapTextBuffer_t {
-    LapTextBuffer_t() : buffer {}, currentSize {}, capacity {N}, head {-1} {
+      class StopWatch : public Screen {
+      public:
+        explicit StopWatch(System::SystemTask& systemTask);
+        ~StopWatch() override;
+        void Refresh() override;
+
+        void playPauseBtnEventHandler();
+        void stopLapBtnEventHandler();
+        bool OnButtonPushed() override;
+
+      private:
+        void SetInterfacePaused();
+        void SetInterfaceRunning();
+        void SetInterfaceStopped();
+
+        void Reset();
+        void Start();
+        void Pause();
+
+        Pinetime::System::SystemTask& systemTask;
+        States currentState = States::Init;
+        TickType_t startTime;
+        TickType_t oldTimeElapsed = 0;
+        TickType_t blinkTime = 0;
+        static constexpr int maxLapCount = 20;
+        TickType_t laps[maxLapCount + 1];
+        static constexpr int displayedLaps = 2;
+        int lapsDone = 0;
+        lv_obj_t *time, *msecTime, *btnPlayPause, *btnStopLap, *txtPlayPause, *txtStopLap;
+        lv_obj_t* lapText;
+        bool isHoursLabelUpdated = false;
+
+        lv_task_t* taskRefresh;
+      };
     }
 
-    void addLaps(const TimeSeparated_t& timeVal) {
-      head++;
-      head %= capacity;
-      buffer[head] = timeVal;
+    template <>
+    struct AppTraits<Apps::StopWatch> {
+      static constexpr Apps app = Apps::StopWatch;
+      static constexpr const char* icon = Screens::Symbols::stopWatch;
 
-      if (currentSize < capacity) {
-        currentSize++;
-      }
-    }
-
-    void clearBuffer() {
-      buffer = {};
-      currentSize = 0;
-      head = -1;
-    }
-
-    TimeSeparated_t* operator[](std::size_t idx) {
-      // Sanity check for out-of-bounds
-      if (idx >= 0 && idx < capacity) {
-        if (idx < currentSize) {
-          // This transformation is to ensure that head is always pointing to index 0.
-          const auto transformed_idx = (head - idx) % capacity;
-          return (&buffer[transformed_idx]);
-        }
-      }
-      return nullptr;
-    }
-
-  private:
-    std::array<TimeSeparated_t, N> buffer;
-    uint8_t currentSize;
-    uint8_t capacity;
-    int8_t head;
-  };
-
-  class StopWatch : public Screen {
-  public:
-    StopWatch(DisplayApp* app, System::SystemTask& systemTask);
-    ~StopWatch() override;
-    void Refresh() override;
-
-    void playPauseBtnEventHandler(lv_event_t event);
-    void stopLapBtnEventHandler(lv_event_t event);
-    bool OnButtonPushed() override;
-
-    void reset();
-    void start();
-    void pause();
-
-  private:
-    Pinetime::System::SystemTask& systemTask;
-    TickType_t timeElapsed;
-    States currentState;
-    TickType_t startTime;
-    TickType_t oldTimeElapsed;
-    TimeSeparated_t currentTimeSeparated; // Holds Mins, Secs, millisecs
-    LapTextBuffer_t<2> lapBuffer;
-    int lapNr = 0;
-    lv_obj_t *time, *msecTime, *btnPlayPause, *btnStopLap, *txtPlayPause, *txtStopLap;
-    lv_obj_t *lapOneText, *lapTwoText;
-
-    lv_task_t* taskRefresh;
-  };
+      static Screens::Screen* Create(AppControllers& controllers) {
+        return new Screens::StopWatch(*controllers.systemTask);
+      };
+    };
+  }
 }

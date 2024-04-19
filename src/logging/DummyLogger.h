@@ -1,5 +1,5 @@
 #pragma once
-#include "Logger.h"
+#include "logging/Logger.h"
 
 namespace Pinetime {
   namespace Logging {
@@ -7,6 +7,7 @@ namespace Pinetime {
     public:
       void Init() override {
       }
+
       void Resume() override {
       }
     };

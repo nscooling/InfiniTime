@@ -20,7 +20,10 @@
 #include <FreeRTOS.h>
 #include <lvgl/src/lv_core/lv_obj.h>
 #include <string>
-#include "Screen.h"
+#include "displayapp/screens/Screen.h"
+#include "displayapp/apps/Apps.h"
+#include "displayapp/Controllers.h"
+#include "Symbols.h"
 
 namespace Pinetime {
   namespace Controllers {
@@ -31,7 +34,7 @@ namespace Pinetime {
     namespace Screens {
       class Music : public Screen {
       public:
-        Music(DisplayApp* app, Pinetime::Controllers::MusicService& music);
+        Music(Pinetime::Controllers::MusicService& music);
 
         ~Music() override;
 
@@ -40,7 +43,7 @@ namespace Pinetime {
         void OnObjectEvent(lv_obj_t* obj, lv_event_t event);
 
       private:
-        bool OnTouchEvent(TouchEvents event);
+        bool OnTouchEvent(TouchEvents event) override;
 
         void UpdateLength();
 
@@ -69,11 +72,9 @@ namespace Pinetime {
         std::string track;
 
         /** Total length in seconds */
-        int totalLength;
-        /** Current length in seconds */
-        int currentLength;
-        /** Last length */
-        int lastLength;
+        int totalLength = 0;
+        /** Current position in seconds */
+        int currentPosition;
         /** Last time an animation update or timer was incremented */
         TickType_t lastIncrement = 0;
 
@@ -84,5 +85,15 @@ namespace Pinetime {
         /** Watchapp */
       };
     }
+
+    template <>
+    struct AppTraits<Apps::Music> {
+      static constexpr Apps app = Apps::Music;
+      static constexpr const char* icon = Screens::Symbols::music;
+
+      static Screens::Screen* Create(AppControllers& controllers) {
+        return new Screens::Music(*controllers.musicService);
+      };
+    };
   }
 }

@@ -1,62 +1,49 @@
 # Fonts
 
-* [Jetbrains Mono](https://www.jetbrains.com/fr-fr/lp/mono/)
-* [Awesome font from LVGL](https://lvgl.io/assets/others/FontAwesome5-Solid+Brands+Regular.woff)
-* [Open Sans Light from Google](https://fonts.google.com/specimen/Open+Sans)
+- [Jetbrains Mono](https://www.jetbrains.com/lp/mono/)
+- [Font Awesome](https://fontawesome.com/v5/cheatsheet/free/solid)
+- [Open Sans Light](https://fonts.google.com/specimen/Open+Sans)
+- [Material Symbols](https://fonts.google.com/icons)
 
-## Generate the fonts:
+### How to add new symbols:
 
-* Open the [LVGL font converter](https://lvgl.io/tools/fontconverter)
-* Name : jetbrains_mono_bold_20
-* Size : 20
-* Bpp : 1 bit-per-pixel
-* Do not enable font compression and horizontal subpixel hinting
-* Load the file `JetBrainsMono-Bold.tff` (use the file in this repo to ensure the version matches) and specify the following range : `0x20-0x7f, 0x410-0x44f`
-* Add a 2nd font, load the file `FontAwesome5-Solid+Brands+Regular.woff` and specify the following
-  range : `0xf293, 0xf294, 0xf244, 0xf240, 0xf242, 0xf243, 0xf241, 0xf54b, 0xf21e, 0xf1e6, 0xf54b, 0xf017, 0xf129, 0xf03a, 0xf185, 0xf560, 0xf001, 0xf3fd, 0xf069, 0xf1fc, 0xf45d, 0xf59f, 0xf5a0, 0xf029, 0xf027, 0xf028, 0xf6a9, 0xf04b, 0xf04c, 0xf048, 0xf051, 0xf095, 0xf3dd, 0xf04d, 0xf2f2, 0xf024, 0xf252, 0xf569, 0xf201, 0xf06e, 0xf015`
-* Click on Convert, and download the file `jetbrains_mono_bold_20.c` and copy it in `src/DisplayApp/Fonts`
-* Add the font .c file path to src/CMakeLists.txt
-* Add an LV_FONT_DECLARE line in src/libs/lv_conf.h
-
-Add new symbols:
-
-* Browse the [cheatsheet](https://fontawesome.com/cheatsheet/free/solid) and find your new symbols
-* For each symbol, add its hex code (0xf641 for the 'Ad' icon, for example) to the *Range* list (Remember to keep this
-  readme updated with newest range list)
-* Convert this hex value into a UTF-8 code
+- Browse the cheat sheets and pick symbols
+  - [Font Awesome](https://fontawesome.com/v5/cheatsheet/free/solid)
+  - [Material Symbols](https://fonts.google.com/icons)
+- For each symbol, add its hex code (0xf641 for the 'Ad' icon, for example) to the *Range* list in the `fonts.json` file
+- Convert this hex value into a UTF-8 code
   using [this site](http://www.ltg.ed.ac.uk/~richard/utf-8.cgi?input=f185&mode=hex)
-* Define the new symbols in `src/displayapp/screens/Symbols.h`:
+- Define the new symbols in `src/displayapp/screens/Symbols.h`:
 
 ```
-static constexpr const char* newSymbol = "\xEF\x86\x85";
+static constexpr const char* newSymbol = "\xEF\x99\x81";
 ```
 
-## Simple method to generate a font
+### the config file format:
 
-If you want to generate a basic font containing only numbers and letters, you can use the above settings but instead of specifying a range, simply list the characters you need in the Symbols field and leave the range blank. This is the approach used for the PineTimeStyle watchface.
-This works well for fonts which will only be used to display numbers, but will fail if you try to add a colon or other punctuation.
+inside `fonts`, there is a dictionary of fonts,
+and for each font there is:
 
-* Open the [LVGL font converter](https://lvgl.io/tools/fontconverter)
-* Name : open_sans_light
-* Size : 150
-* Bpp : 1 bit-per-pixel
-* Do not enable font compression and horizontal subpixel hinting
-* Load the file `open_sans_light.tff` (use the file in this repo to ensure the version matches) and specify the following symbols : `0123456789`
-* Click on Convert, and download the file `open_sans_light.c` and copy it in `src/DisplayApp/Fonts`
-* Add the font .c file path to src/CMakeLists.txt (search for jetbrains to find the appropriate location/format)
-* Add an LV_FONT_DECLARE line in src/libs/lv_conf.h (as above)
+- sources - list of file,range(,symbols) wanted (as a dictionary of those)
+- bpp - bits per pixel.
+- size - size.
+- patches - list of extra "patches" to run: a path to a .patch file. (may be relative)
+- compress - optional. default disabled. add `"compress": true` to enable
 
-#### Navigation font
+### Navigation font
 
-To create the navigtion.ttf I use the web app [icomoon](https://icomoon.io/app)
-this app can import the svg files from the folder *src/displayapp/icons/navigation/unique* and creat a ttf file the
-project for the site is *lv_font_navi_80.json* you can import it to add or remove icons
+`navigtion.ttf` is created with the web app [icomoon](https://icomoon.io/app) by importing the svg files from `src/displayapp/icons/navigation/unique` and generating the font. `lv_font_navi_80.json` is a project file for the site, which you can import to add or remove icons.
 
-You can also use the online LVGL tool to create the .c
+To save space in the internal flash memory, the navigation icons are now moved into the external flash memory. To do this, the TTF font is converted into pictures (1 for each symbol). Those pictures are then concatenated into 2 big pictures (we need two files since LVGL supports maximum 2048px width/height). At runtime, a map is used to locate the desired icon in the corresponding file at a specific offset. 
 
-ttf file : navigation.ttf name : lv_font_navi_80 size : 80px Bpp : 2 bit-per-pixel range : 0xe900-0xe929
+Here is the command to convert the TTF font in PNG picture:
 
-$lv_font_conv --font navigation.ttf -r '0xe900-0xe929' --size 80 --format lvgl --bpp 2 --no-prefilter -o
-lv_font_navi_80.c
+```shell
+convert -background none -fill white -font navigation.ttf -pointsize 80 -gravity center label:"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"  navigation0.png
 
-#### I use the method above to create the other ttf
+convert -background none -fill white -font navigation.ttf -pointsize 80 -gravity center label:"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"  navigation1.png
+```
+
+*Please note that the characters after `label:` are UTF-8 characters and might not be displayed correctly in this document.*
+
+The characters in the TTF font range from `0xEEA480` to `0xEEA4A9`. Characters from `0xEEA480` to `0xEEA498` are stored in `navigation0.png` and the others in `navigation1.png`. Each character is 80px height so displaying a specific character consists in multiplying its index in the file by -80 and use this value as the offset when calling `lv_img_set_offset_y()`.

@@ -1,31 +1,31 @@
-#include "DisplayAppRecovery.h"
+#include "displayapp/DisplayAppRecovery.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <libraries/log/nrf_log.h>
-#include <components/rle/RleDecoder.h>
-#include <touchhandler/TouchHandler.h>
+#include "components/fs/FS.h"
+#include "components/rle/RleDecoder.h"
+#include "touchhandler/TouchHandler.h"
 #include "displayapp/icons/infinitime/infinitime-nb.c"
 #include "components/ble/BleController.h"
 
 using namespace Pinetime::Applications;
 
 DisplayApp::DisplayApp(Drivers::St7789& lcd,
-                       Components::LittleVgl& lvgl,
-                       Drivers::Cst816S& touchPanel,
-                       Controllers::Battery& batteryController,
-                       Controllers::Ble& bleController,
-                       Controllers::DateTime& dateTimeController,
-                       Drivers::WatchdogView& watchdog,
-                       Pinetime::Controllers::NotificationManager& notificationManager,
-                       Pinetime::Controllers::HeartRateController& heartRateController,
-                       Controllers::Settings& settingsController,
-                       Pinetime::Controllers::MotorController& motorController,
-                       Pinetime::Controllers::MotionController& motionController,
-                       Pinetime::Controllers::TimerController& timerController,
-                       Pinetime::Controllers::AlarmController& alarmController,
-                       Pinetime::Controllers::TouchHandler& touchHandler)
+                       const Drivers::Cst816S& /*touchPanel*/,
+                       const Controllers::Battery& /*batteryController*/,
+                       const Controllers::Ble& bleController,
+                       Controllers::DateTime& /*dateTimeController*/,
+                       const Drivers::Watchdog& /*watchdog*/,
+                       Pinetime::Controllers::NotificationManager& /*notificationManager*/,
+                       Pinetime::Controllers::HeartRateController& /*heartRateController*/,
+                       Controllers::Settings& /*settingsController*/,
+                       Pinetime::Controllers::MotorController& /*motorController*/,
+                       Pinetime::Controllers::MotionController& /*motionController*/,
+                       Pinetime::Controllers::AlarmController& /*alarmController*/,
+                       Pinetime::Controllers::BrightnessController& /*brightnessController*/,
+                       Pinetime::Controllers::TouchHandler& /*touchHandler*/,
+                       Pinetime::Controllers::FS& /*filesystem*/)
   : lcd {lcd}, bleController {bleController} {
-
 }
 
 void DisplayApp::Start() {
@@ -110,15 +110,19 @@ void DisplayApp::DisplayOtaProgress(uint8_t percent, uint16_t color) {
 }
 
 void DisplayApp::PushMessage(Display::Messages msg) {
-  BaseType_t xHigherPriorityTaskWoken;
-  xHigherPriorityTaskWoken = pdFALSE;
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   xQueueSendFromISR(msgQueue, &msg, &xHigherPriorityTaskWoken);
-  if (xHigherPriorityTaskWoken) {
-    /* Actual macro used here is port specific. */
-    // TODO : should I do something here?
-  }
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void DisplayApp::Register(Pinetime::System::SystemTask* systemTask) {
+void DisplayApp::Register(Pinetime::System::SystemTask* /*systemTask*/) {
+}
 
+void DisplayApp::Register(Pinetime::Controllers::SimpleWeatherService* /*weatherService*/) {
+}
+
+void DisplayApp::Register(Pinetime::Controllers::MusicService* /*musicService*/) {
+}
+
+void DisplayApp::Register(Pinetime::Controllers::NavigationService* /*NavigationService*/) {
 }

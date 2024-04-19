@@ -1,12 +1,13 @@
 #pragma once
 
+#include <array>
 #include <memory>
-
+#include "displayapp/apps/Apps.h"
 #include "Screen.h"
 #include "ScreenList.h"
-#include "components/datetime/DateTimeController.h"
-#include "components/settings/Settings.h"
-#include "components/battery/BatteryController.h"
+#include "displayapp/Controllers.h"
+#include "Symbols.h"
+#include "Tile.h"
 
 namespace Pinetime {
   namespace Applications {
@@ -15,20 +16,31 @@ namespace Pinetime {
       public:
         explicit ApplicationList(DisplayApp* app,
                                  Pinetime::Controllers::Settings& settingsController,
-                                 Pinetime::Controllers::Battery& batteryController,
-                                 Controllers::DateTime& dateTimeController);
+                                 const Pinetime::Controllers::Battery& batteryController,
+                                 const Pinetime::Controllers::Ble& bleController,
+                                 Controllers::DateTime& dateTimeController,
+                                 Pinetime::Controllers::FS& filesystem,
+                                 std::array<Tile::Applications, UserAppTypes::Count>&& apps);
         ~ApplicationList() override;
         bool OnTouchEvent(TouchEvents event) override;
 
       private:
-        Controllers::Settings& settingsController;
-        Pinetime::Controllers::Battery& batteryController;
-        Controllers::DateTime& dateTimeController;
+        DisplayApp* app;
+        auto CreateScreenList() const;
+        std::unique_ptr<Screen> CreateScreen(unsigned int screenNum) const;
 
-        ScreenList<2> screens;
-        std::unique_ptr<Screen> CreateScreen1();
-        std::unique_ptr<Screen> CreateScreen2();
-        // std::unique_ptr<Screen> CreateScreen3();
+        Controllers::Settings& settingsController;
+        const Pinetime::Controllers::Battery& batteryController;
+        const Pinetime::Controllers::Ble& bleController;
+        Controllers::DateTime& dateTimeController;
+        Pinetime::Controllers::FS& filesystem;
+        std::array<Tile::Applications, UserAppTypes::Count> apps;
+
+        static constexpr int appsPerScreen = 6;
+
+        static constexpr int nScreens = UserAppTypes::Count > 0 ? (UserAppTypes::Count - 1) / appsPerScreen + 1 : 1;
+
+        ScreenList<nScreens> screens;
       };
     }
   }

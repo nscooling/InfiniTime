@@ -2,22 +2,23 @@
 
 #include <cstdint>
 #include <chrono>
-#include "Screen.h"
-#include <bits/unique_ptr.h>
+#include "displayapp/screens/Screen.h"
 #include "systemtask/SystemTask.h"
-#include <libs/lvgl/src/lv_core/lv_style.h>
-#include <libs/lvgl/src/lv_core/lv_obj.h>
+#include "Symbols.h"
+#include <lvgl/src/lv_core/lv_style.h>
+#include <lvgl/src/lv_core/lv_obj.h>
 
 namespace Pinetime {
   namespace Controllers {
     class HeartRateController;
   }
+
   namespace Applications {
     namespace Screens {
 
       class HeartRate : public Screen {
       public:
-        HeartRate(DisplayApp* app, Controllers::HeartRateController& HeartRateController, System::SystemTask& systemTask);
+        HeartRate(Controllers::HeartRateController& HeartRateController, System::SystemTask& systemTask);
         ~HeartRate() override;
 
         void Refresh() override;
@@ -37,5 +38,15 @@ namespace Pinetime {
         lv_task_t* taskRefresh;
       };
     }
+
+    template <>
+    struct AppTraits<Apps::HeartRate> {
+      static constexpr Apps app = Apps::HeartRate;
+      static constexpr const char* icon = Screens::Symbols::heartBeat;
+
+      static Screens::Screen* Create(AppControllers& controllers) {
+        return new Screens::HeartRate(controllers.heartRateController, *controllers.systemTask);
+      };
+    };
   }
 }
